@@ -66,20 +66,9 @@ public class YBSinkTask extends SinkTask {
     public void start(final Map<String, String> properties) {
         this.keyspace = properties.get("yugabyte.cql.keyspace");
         this.tablename = properties.get("yugabyte.cql.tablename");
-        LOG.info("START " + this.keyspace + " " + this.tablename);
+        LOG.info("Start with keyspace=" + this.keyspace + ", table=" + this.tablename);
         this.cassandraSession = getCassandraSession(properties);
         columnNameToType = new HashMap<String, DataType>();
-    }
-
-    // Used to store schema information from the table.
-    private class ColumnInfo {
-        private String name;
-        private DataType dataType;
-
-        ColumnInfo(String colname, DataType datatype) {
-            name = colname;
-            dataType = datatype;
-        }
     }
 
     // Used to store contact point information to the YugaByte cluster.
@@ -156,6 +145,17 @@ public class YBSinkTask extends SinkTask {
         }
     }
 
+    // Used to store schema information from the table.
+    private class ColumnInfo {
+        private String name;
+        private DataType dataType;
+
+        ColumnInfo(String colname, DataType datatype) {
+            name = colname;
+            dataType = datatype;
+        }
+    }
+
     private String generateInsert(List<ColumnInfo> cols) {
         String insert = "INSERT INTO " + keyspace + "." + tablename + "(" + cols.get(0).name;
         String comma = ",";
@@ -165,19 +165,6 @@ public class YBSinkTask extends SinkTask {
             quesMarks = quesMarks + comma + "?";
         }
         insert = insert + ") VALUES (" + quesMarks + ")";
-        return insert;
-    }
-
-    private String generateColNameInsert(List<ColumnInfo> cols) {
-        String insert = "INSERT INTO " + keyspace + "." + tablename + "(" + cols.get(0).name;
-        String colon = ":";
-        String comma = ",";
-        String binds = colon + cols.get(0).name;
-        for (int i = 1; i < cols.size(); i++) {
-            insert = insert + comma + cols.get(i).name;
-            binds = binds + comma + colon + cols.get(i).name;
-        }
-        insert = insert + ") VALUES (" + binds + ")";
         return insert;
     }
 
@@ -355,6 +342,18 @@ public class YBSinkTask extends SinkTask {
         return bound;
     }
 
+
+    // Helper class to track per field in the value maps schema and value.
+    class SchemaAndValue {
+        private Schema schema;
+        private Object value;
+
+        public SchemaAndValue(Schema schema, Object value) {
+            this.schema = schema;
+            this.value = value;
+        }
+    }
+
     private BoundStatement bindFields(PreparedStatement statement,
                                       final Map<String, SchemaAndValue> allFields) {
         BoundStatement bound = statement.bind();
@@ -370,17 +369,6 @@ public class YBSinkTask extends SinkTask {
         return bound;
     }
 
-    // Helper struct to track per field schema and value.
-    class SchemaAndValue {
-        private Schema schema;
-        private Object value;
-
-        public SchemaAndValue(Schema schema, Object value) {
-            this.schema = schema;
-            this.value = value;
-        }
-    }
-
     private List<Statement> getStatements(final Collection<SinkRecord> records) {
         List<Statement> boundStatements = new ArrayList<Statement>();
         String insert = generateInsert(getColsFromTable());
@@ -393,6 +381,7 @@ public class YBSinkTask extends SinkTask {
                 throw new IllegalArgumentException("Invalid `value` in " + record);
             }
             if (record.valueSchema() == null) {
+                // Use the table schema if user has not provided one with the record.
                 boundStatements.add(bindFields(preparedStatement, record));
                 continue;
             }
