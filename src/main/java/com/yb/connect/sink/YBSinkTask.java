@@ -14,6 +14,8 @@
 package com.yb.connect.sink;
 
 import java.nio.ByteBuffer;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
@@ -24,7 +26,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
 import java.util.stream.Collectors;
-
 
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -50,28 +51,65 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * YugaByte Sink Task.
+ * YugaByte DB Sink Task.
  */
 public class YBSinkTask extends SinkTask {
     private static final Logger LOG = LoggerFactory.getLogger(YBSinkTask.class);
     private static final String VERSION = "1";
 
-    private String keyspace;
-    private String tablename;
+    private String keyspace = null;
+    private String tablename = null;
     private Cluster cassandraCluster = null;
     private Session cassandraSession = null;
-    private Map<String, DataType> columnNameToType;
+    private Map<String, DataType> columnNameToType = null;
 
     @Override
     public void start(final Map<String, String> properties) {
         this.keyspace = properties.get("yugabyte.cql.keyspace");
+        if (this.keyspace == null || this.keyspace.isEmpty()) {
+            throw new IllegalArgumentException("Need a valid value for 'yugabyte.cql.keyspace'.");
+        }
         this.tablename = properties.get("yugabyte.cql.tablename");
+        if (this.tablename == null || this.tablename.isEmpty()) {
+            throw new IllegalArgumentException("Need a valid value for 'yugabyte.cql.tablename'.");
+        }
         LOG.info("Start with keyspace=" + this.keyspace + ", table=" + this.tablename);
-        this.cassandraSession = getCassandraSession(properties);
+        List<ContactPoint> contactPoints =
+            getContactPoints(properties.get("yugabyte.cql.contact.points"));
+        this.cassandraSession = getCassandraSession(contactPoints);
+        if (this.cassandraSession == null) {
+            throw new IllegalArgumentException("Could not connect to 'yugabyte.cql.contact.points'"
+                + contactPoints);
+        }
         columnNameToType = new HashMap<String, DataType>();
     }
 
-    // Used to store contact point information to the YugaByte cluster.
+    @Override
+    public void put(final Collection<SinkRecord> records) {
+        if (records.isEmpty()) {
+            return;
+        }
+        LOG.info("Processing " + records.size() + " records from Kafka.");
+        List<Statement> statements = getStatements(records);
+        statements.forEach(statement -> cassandraSession.execute(statement));
+    }
+
+    @Override
+    public void stop() {
+        if (cassandraSession != null) {
+            cassandraSession.close();
+        }
+        if (cassandraCluster != null) {
+            cassandraCluster.close();
+        }
+    }
+
+    @Override
+    public String version() {
+        return VERSION;
+    }
+
+    // Helper class for host/port information to the YugaByte DB cluster.
     private class ContactPoint {
         private String host;
         private int port;
@@ -92,10 +130,10 @@ public class YBSinkTask extends SinkTask {
         public String ToString() { return host + ":" + port; }
     }
 
-    public ContactPoint fromHostPort(String hostPort) {
+    private ContactPoint fromHostPort(String hostPort) {
         String[] parts = hostPort.split(":");
         if (parts.length != 2) {
-            throw new IllegalArgumentException("Invalid host port format " + hostPort);
+            throw new IllegalArgumentException("Invalid host:port format " + hostPort);
         }
         return new ContactPoint(parts[0], Integer.parseInt(parts[1]));
     }
@@ -112,15 +150,15 @@ public class YBSinkTask extends SinkTask {
         return contactPoints;
     }
 
-    protected Session getCassandraSession(final Map<String, String> properties) {
+    private Session getCassandraSession(List<ContactPoint> contactPoints) {
         if (cassandraSession == null) {
-            createCassandraClient(getContactPoints(properties.get("yugabyte.cql.contact.points")));
+            createCassandraClient(contactPoints);
         }
         return cassandraSession;
     }
 
     /**
-     * Create a Cassandra client and session.
+     * Create a Cassandra client and session to YugaByte DB's CQL contact points.
      */
     private synchronized void createCassandraClient(List<ContactPoint> contactPoints) {
         if (cassandraCluster == null) {
@@ -186,6 +224,25 @@ public class YBSinkTask extends SinkTask {
         return cols;
     }
 
+    // Helper function to parse a string into a Date type
+    private Date getTimeStamp(String val) {
+        Calendar cal = new GregorianCalendar();
+        cal.setTimeZone(TimeZone.getTimeZone("GMT"));
+        cal.setTimeInMillis(0);
+        String errMsg = "Invalid timestamp format for " + val +
+                        ". Expect 'yyyy-mm-dd hh:mm:ss'.";
+        Date date = null;
+        // TODO: Allow more patterns.
+        String pattern = "yyyy-MM-dd HH:mm:ss";
+        try {
+            SimpleDateFormat simpleDateFormat = new SimpleDateFormat(pattern);
+            date = simpleDateFormat.parse(val);
+        } catch (ParseException pe) {
+            throw new IllegalArgumentException(errMsg + "Error: " + pe);
+        }
+        return date;
+    }
+
     private BoundStatement bindByColumnType(BoundStatement statement, String colName,
                                             DataType.Name typeName,  Object value) {
         LOG.info("Bind " + colName + " of type " + typeName);
@@ -220,35 +277,7 @@ public class YBSinkTask extends SinkTask {
                 break;
             case TIMESTAMP:
                 if (value instanceof String) {
-                    // TODO: Make helper function. Allow more formats.
-                    Calendar cal = new GregorianCalendar();
-                    cal.setTimeZone(TimeZone.getTimeZone("GMT"));
-                    cal.setTimeInMillis(0);
-                    String val = (String) value;
-                    String[] dateTime = val.split(" ");
-                    String errMsg = "Invalid timestamp format. Expect yyyy-mm-dd hh:mm:ss";
-                    if (dateTime.length != 2) {
-                        throw new IllegalArgumentException(errMsg);
-                    }
-                    String[] date = dateTime[0].split("-");
-                    if (date.length != 3) {
-                        throw new IllegalArgumentException(errMsg);
-                    }
-                    // Java Date month value starts at 0 not 1.
-                    cal.set(Integer.parseInt(date[0]), Integer.parseInt(date[1]) - 1,
-                            Integer.parseInt(date[2]));
-                    String[] time = dateTime[1].split(":");
-                    if (date.length > 4 || date.length < 2) {
-                        throw new IllegalArgumentException(errMsg);
-                    }
-
-                    cal.set(Calendar.HOUR_OF_DAY, Integer.parseInt(time[0]));
-                    cal.set(Calendar.MINUTE, Integer.parseInt(time[1]));
-                    if (date.length == 3) {
-                        cal.set(Calendar.SECOND, Integer.parseInt(time[2]));
-                    }
-                    LOG.info("Cal " + cal.toString());
-                    statement = statement.setTimestamp(colName, cal.getTime());
+                    statement = statement.setTimestamp(colName, getTimeStamp((String) value));
                 } else if (value instanceof Integer) {
                     Calendar cal = new GregorianCalendar();
                     Long val = (Long) value;
@@ -325,7 +354,7 @@ public class YBSinkTask extends SinkTask {
         for (String key : valueMap.keySet()) {
             if (lowerToOrig.get(key.toLowerCase()) != null) {
                 throw new IllegalArgumentException("Column name " + key + " with different " +
-                    " capsitalization already present " + lowerToOrig.get(key.toLowerCase()));
+                    " capitalization already present " + lowerToOrig.get(key.toLowerCase()));
             }
             lowerToOrig.put(key.toLowerCase(), key);
         }
@@ -341,7 +370,6 @@ public class YBSinkTask extends SinkTask {
         }
         return bound;
     }
-
 
     // Helper class to track per field in the value maps schema and value.
     class SchemaAndValue {
@@ -398,30 +426,5 @@ public class YBSinkTask extends SinkTask {
             boundStatements.add(bindFields(preparedStatement, allFields));
         }
         return boundStatements;
-    }
-
-    @Override
-    public void put(final Collection<SinkRecord> records) {
-        if (records.isEmpty()) {
-            return;
-        }
-        LOG.info("Processing " + records.size() + " records from Kafka.");
-        List<Statement> statements = getStatements(records);
-        statements.forEach(statement -> cassandraSession.execute(statement));
-    }
-
-    @Override
-    public void stop() {
-        if (cassandraSession != null) {
-            cassandraSession.close();
-        }
-        if (cassandraCluster != null) {
-            cassandraCluster.close();
-        }
-    }
-
-    @Override
-    public String version() {
-        return VERSION;
     }
 }

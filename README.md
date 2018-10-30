@@ -26,13 +26,15 @@ For building these projects it requires following tools. Please refer README.md 
 
 3. Include dependent jar into kafka connectors:
   - Run 'mvn clean install -DskipTests' in the top-level directory in this repo and copy the jar file:
-    ```mkdir ~/code/confluent-os/confluent-5.0.0/share/java/kafka-connect-yugabyte/; cp  ~/code/yb-kafka-connector/target/yb-kafka-connnector-1.0.0.jar ~/code/confluent-os/confluent-5.0.0/share/java/kafka-connect-yugabyte/```
+    ```
+    mkdir ~/code/confluent-os/confluent-5.0.0/share/java/kafka-connect-yugabyte/; cp  ~/code/yb-kafka-connector/target/yb-kafka-connnector-1.0.0.jar ~/code/confluent-os/confluent-5.0.0/share/java/kafka-connect-yugabyte/
+    ```
   - Copy all the dependent jars from Cassandra into the same folder. Most of these can be downloaded from maven central repository. The final list of jars should look like this:
     ```
        -rw-r--r--@    85449 Oct 27  2013 metrics-core-3.0.1.jar
-       -rw-r--r--   1082699 Oct 26 00:16 cassandra-driver-core-3.2.0.jar
        -rw-r--r--@  3823147 Oct 27 15:18 netty-all-4.1.25.Final.jar
-       -rw-r--r--     13917 Oct 27 15:41 yb-kafka-connnector-1.0.0.jar
+       -rw-r--r--   1100520 Oct 29 11:18 cassandra-driver-core-3.2.0-yb-18.jar
+       -rw-r--r--     14934 Oct 29 11:19 yb-kafka-connnector-1.0.0.jar
      ```
 
 4. Do the following to run Kafka and related dependencies:
@@ -64,7 +66,7 @@ For building these projects it requires following tools. Please refer README.md 
 
 6. Create a topic (one time)
    ```
-   ~/code/confluent-os/confluent-5.0.0/bin/kafka-topics --create --zookeeper localhost:2181 --replication-factor 1 --partitions 1 --topic iot-data-event
+   ~/code/confluent-os/confluent-5.0.0/bin/kafka-topics --create --zookeeper localhost:2181 --replication-factor 1 --partitions 1 --topic iot-event
    ```
    and then run the sample Kafka producer java app (need to tweak this to not depend on the https://github.com/YugaByte/yb-iot-fleet-management repo):
 
@@ -73,7 +75,9 @@ For building these projects it requires following tools. Please refer README.md 
    ```
 
 7. Run the Kafka Connect in standalone mode
-   ```cd ~/code/confluent-os/confluent-5.0.0; ./bin/connect-standalone ./etc/kafka/connect-standalone.properties ./etc/kafka-connect-yugabyte/sink.properties```
+   ```
+   cd ~/code/confluent-os/confluent-5.0.0; ./bin/connect-standalone ./etc/kafka/connect-standalone.properties ./etc/kafka-connect-yugabyte/sink.properties
+   ```
    Note: In the connect-standalone need to set *.enable.schema to false.
 
    You should see something like this (relevant lines from YBSinkTask.java):
@@ -88,20 +92,21 @@ For building these projects it requires following tools. Please refer README.md 
    ```
 
 8. Confirm that the rows are in the table using cqlsh.
-```cqlsh> select * from iotdemo.ingress limit 5;
+   ```
+   cqlsh> select * from iotdemo.ingress limit 5;
 
- vehicleid                            | routeid  | vehicletype | longitude  | latitude  | timestamp                       | speed | fuellevel
---------------------------------------+----------+-------------+------------+-----------+---------------------------------+-------+-----------
- cc83f207-f233-49f3-8474-3b5f88379b93 | Route-43 | Small Truck | -97.978294 | 35.816948 | 2018-10-28 16:24:51.000000+0000 |    45 |        37
- 0cb3908c-34a2-4642-8a22-9c330030d0d3 | Route-43 | Large Truck |  -97.32471 | 35.677494 | 2018-10-28 16:24:51.000000+0000 |    68 |        35
- 6c6083c6-d05d-48a9-8119-10d7b348272d | Route-82 |  18 Wheeler | -96.268425 | 34.652107 | 2018-10-28 16:24:51.000000+0000 |    75 |        13
- d7f2f71a-4347-46a3-aa28-c4048328e7f5 | Route-82 | Large Truck |   -96.2321 | 34.241295 | 2018-10-28 16:24:51.000000+0000 |    77 |        37
- 7af07ac6-0902-42ee-ad1c-657e96473dac | Route-37 | Small Truck |   -95.0934 |  33.29403 | 2018-10-28 15:17:55.000000+0000 |    89 |        22
+   vehicleid                            | routeid  | vehicletype | longitude  | latitude  | timestamp                       | speed | fuellevel
+   --------------------------------------+----------+-------------+------------+-----------+---------------------------------+-------+-----------
+   cc83f207-f233-49f3-8474-3b5f88379b93 | Route-43 | Small Truck | -97.978294 | 35.816948 | 2018-10-28 16:24:51.000000+0000 |    45 |        37
+   0cb3908c-34a2-4642-8a22-9c330030d0d3 | Route-43 | Large Truck |  -97.32471 | 35.677494 | 2018-10-28 16:24:51.000000+0000 |    68 |        35
+   6c6083c6-d05d-48a9-8119-10d7b348272d | Route-82 |  18 Wheeler | -96.268425 | 34.652107 | 2018-10-28 16:24:51.000000+0000 |    75 |        13
+   d7f2f71a-4347-46a3-aa28-c4048328e7f5 | Route-82 | Large Truck |   -96.2321 | 34.241295 | 2018-10-28 16:24:51.000000+0000 |    77 |        37
+   7af07ac6-0902-42ee-ad1c-657e96473dac | Route-37 | Small Truck |   -95.0934 |  33.29403 | 2018-10-28 15:17:55.000000+0000 |    89 |        22
 
-(5 rows)
-cqlsh> select count(*) from iotdemo.ingress;
-...
-```
+   (5 rows)
+   cqlsh> select count(*) from iotdemo.ingress;
+   ...
+   ```
 
 ## Future Work
 - Add more data types.
