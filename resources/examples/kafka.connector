@@ -1,8 +1,0 @@
-name=yugabyte-sink
-connector.class=com.yb.connect.sink.YBSinkConnector
-tasks.max=1
-topics=iot-event
-yugabyte.cql.keyspace=iotdemo
-yugabyte.cql.tablename=ingress
-yugabyte.cql.contact.points=127.0.0.1:9042,127.0.0.2:9042,127.0.0.3:9042
-

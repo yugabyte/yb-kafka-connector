@@ -22,8 +22,11 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.TimeZone;
 import java.util.stream.Collectors;
 
@@ -91,6 +94,10 @@ public class YBSinkTask extends SinkTask {
         }
         LOG.info("Processing " + records.size() + " records from Kafka.");
         List<Statement> statements = getStatements(records);
+        if (statements.isEmpty()) {
+            LOG.info("No valid statements were received.");
+            return;
+        }
         statements.forEach(statement -> cassandraSession.execute(statement));
     }
 
@@ -245,9 +252,12 @@ public class YBSinkTask extends SinkTask {
 
     private BoundStatement bindByColumnType(BoundStatement statement, String colName,
                                             DataType.Name typeName,  Object value) {
-        LOG.info("Bind " + colName + " of type " + typeName);
+        LOG.info("Bind '" + colName + "' of type " + typeName);
         switch (typeName) {
             case INT:
+                if (!(value instanceof Integer)) {
+                    throw new IllegalArgumentException("Value should be of type Integer.");
+                }
                 statement = statement.setInt(colName, (Integer)value);
                 break;
             case BIGINT:
@@ -278,13 +288,13 @@ public class YBSinkTask extends SinkTask {
             case TIMESTAMP:
                 if (value instanceof String) {
                     statement = statement.setTimestamp(colName, getTimeStamp((String) value));
-                } else if (value instanceof Integer) {
+                } else if (value instanceof Integer || value instanceof Long) {
                     Calendar cal = new GregorianCalendar();
                     Long val = (Long) value;
                     cal.setTimeInMillis(val);
                     statement = statement.setTimestamp(colName, cal.getTime());
                 } else {
-                    String errMsg = "Timestamp can be set as string or integer only.";
+                    String errMsg = "Timestamp can be set as string or integer or long only.";
                     LOG.info(errMsg);
                     throw new IllegalArgumentException(errMsg);
                 }
@@ -292,7 +302,7 @@ public class YBSinkTask extends SinkTask {
             default:
                 String errMsg = "Column type " + typeName + " for " + colName +
                                 " not supported yet.";
-                LOG.warn(errMsg);
+                LOG.error(errMsg);
                 throw new IllegalArgumentException(errMsg);
         }
         return statement;
@@ -339,18 +349,25 @@ public class YBSinkTask extends SinkTask {
           default:
             String errMsg = "Schema type " + schema.type() + " for " + schema.name() +
                             " not supported yet.";
-            LOG.warn(errMsg);
+            LOG.error(errMsg);
             throw new IllegalArgumentException(errMsg);
         }
         return statement;
     }
 
-    private BoundStatement bindFields(PreparedStatement statement,
-                                      final SinkRecord record) {
-        BoundStatement bound = statement.bind();
-        Map<String, Object> valueMap = ((HashMap<String, Object>) record.value());
-        // TODO: This will ignore two columns with just caps difference in the name.
+    // Helper function to sanitize the record value json/map keys and also return a column name
+    // mapping table (lower case) names to value keys.
+    private Map<String, String> sanitizeAndGetColumns(Map<String, Object> valueMap) {
+        if (valueMap.keySet().size() > columnNameToType.keySet().size()) {
+            String errMsg = "Sink record json cannot have more columns than the table.";
+            LOG.error(errMsg + ". Record has " + valueMap.keySet() + ", table has " +
+                      columnNameToType.keySet());
+            throw new IllegalArgumentException(errMsg);
+        }
+
         Map<String, String> lowerToOrig = new HashMap<String, String>();
+        // TODO: This will error out when two columns have the same name, just capitalization
+        // difference.
         for (String key : valueMap.keySet()) {
             if (lowerToOrig.get(key.toLowerCase()) != null) {
                 throw new IllegalArgumentException("Column name " + key + " with different " +
@@ -358,16 +375,34 @@ public class YBSinkTask extends SinkTask {
             }
             lowerToOrig.put(key.toLowerCase(), key);
         }
+
+        if (!columnNameToType.keySet().containsAll(lowerToOrig.keySet())) {
+            String errMsg = "Sink record json cannot have more columns than the table.";
+            LOG.error(errMsg + " Record columns are " + lowerToOrig.keySet() +
+                       ", table columns are " + columnNameToType.keySet());
+            throw new IllegalArgumentException(errMsg);
+        }
+
+        return lowerToOrig;
+    }
+
+    private BoundStatement bindFields(PreparedStatement statement,
+                                      final SinkRecord record) {
+        BoundStatement bound = statement.bind();
+        Map<String, Object> valueMap = ((HashMap<String, Object>) record.value());
+        Map<String, String> lowerToOrig = sanitizeAndGetColumns(valueMap);
+
         for (final String colName : columnNameToType.keySet()) {
             Object value = valueMap.get(lowerToOrig.get(colName));
             if (value == null) {
-                LOG.info("Entry for table column " + colName + " not found in sink record.");
-                bound = bound.setString(colName, null);
+                LOG.info("Entry for table column '" + colName + "' not found in sink record.");
+                bound = bound.setToNull(colName);
             } else {
                 bound = bindByColumnType(bound, colName, columnNameToType.get(colName).getName(),
                                          value);
             }
         }
+
         return bound;
     }
 
@@ -389,7 +424,7 @@ public class YBSinkTask extends SinkTask {
             final SchemaAndValue sav = allFields.get(colName);
             if (sav == null) {
                 LOG.info("Entry for table column " + colName + " not found in sink record.");
-                bound = bound.setString(colName, null);
+                bound = bound.setToNull(colName);
             } else {
                 bound = bindByType(bound, sav.schema, sav.value, columnNameToType.get(colName));
             }
@@ -406,7 +441,8 @@ public class YBSinkTask extends SinkTask {
             LOG.info("Prepare " + record + " Key/Schema=" + record.key() + "/" + record.keySchema()
                      + " Value/Schema=" + record.value() + "/" + record.valueSchema());
             if (record.value() == null) {
-                throw new IllegalArgumentException("Invalid `value` in " + record);
+                // Ignoring record if it has a null value (say, a newline from user).
+                continue;
             }
             if (record.valueSchema() == null) {
                 // Use the table schema if user has not provided one with the record.
