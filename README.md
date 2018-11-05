@@ -54,15 +54,13 @@ For building and using this project, we requires following tools pre-installed o
 4. Do the following to run Kafka and related components:
    ```
    export PATH=$PATH:~/yb-kafka/confluent-os/confluent-5.0.0/bin
-   confluent start
-   confluent stop connect
-   confluent stop kafka-rest
+   confluent start ksql-server
    confluent status
    ```
 
    The output for the `confluent status` should look like
    ```
-   control-center is [UP]
+   control-center is [DOWN]
    ksql-server is [UP]
    connect is [DOWN]
    kafka-rest is [DOWN]
