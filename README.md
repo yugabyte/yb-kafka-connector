@@ -9,7 +9,7 @@ For building and using this project, we requires following tools pre-installed o
 - Maven - 3.3+
 
 ## Steps to setup and run connect sink
-1. Download Confluent Open Source from https://www.confluent.io/download/. This is a manual step, as Email id is needed (as of Nov 2018).
+1. Download Confluent Open Source from https://www.confluent.io/download/. This is a manual step, since an email id is needed to register (as of Nov 2018).
    Unbundle the content of the tar.gz to location `~/yb-kafka/confluent-os/confluent-5.0.0` using these steps.
    ```
    mkdir -p ~/yb-kafka/confluent-os
@@ -68,6 +68,7 @@ For building and using this project, we requires following tools pre-installed o
    kafka is [UP]
    zookeeper is [UP]
    ```
+   *Note*: It is required that the `DOWN` components in this list are not actually enabled.
 
 5. Install YugaByte DB and create the keyspace/table.
    - [Install YugaByte DB and start a local cluster](https://docs.yugabyte.com/quick-start/install/).
@@ -92,22 +93,23 @@ For building and using this project, we requires following tools pre-installed o
    Feel free to Ctrl-C this process or switch to a different shell as more values can be added later as well to the same topic.
 
 7. Setup and run the Kafka Connect Sink
-   - Setup the properties for kakfa server
+   - Setup the properties for Kafka server
      ```
      cp ~/yb-kafka/yb-kafka-connector/resources/examples/kafka.connect.properties ~/yb-kafka/confluent-os/confluent-5.0.0/etc/kafka/
      ```
 
      *Note*: Setting the `bootstrap.servers` to a remote host/ports in the same file can help connect to any accessible existing Kafka cluster.
 
-   - Do the following to setup a yugabyte sink properties file
+   - Do the following to setup a YugaByte sink properties file
      ```
      mkdir -p ~/yb-kafka/confluent-os/confluent-5.0.0/etc/kafka-connect-yugabyte
      cp ~/yb-kafka/yb-kafka-connector/resources/examples/yugabyte.sink.properties ~/yb-kafka/confluent-os/confluent-5.0.0/etc/kafka-connect-yugabyte
      ```
 
-     *Note*: The keyspace and tablename values in the kafka.connect.properties file should match the values in the cqlsh commands in step 5.
-             The topics value should match the topic name from producer in step 6.
-             Setting the `yugabyte.cql.contact.points` to a non-local list of host/ports will help connect to any remote accessible existing YugaByte DB cluster.
+     *Note*:
+        - The `keyspace` and `tablename` values in the `kafka.connect.properties` file should match the values in the cqlsh commands in step 5.
+        - The topics value should match the topic name from producer in step 6.
+        - Setting the `yugabyte.cql.contact.points` to a non-local list of host/ports will help connect to any remote accessible existing YugaByte DB cluster.
 
    - Finally run the connect sink in standalone mode:
      ```
@@ -127,7 +129,7 @@ For building and using this project, we requires following tools pre-installed o
      ...
      ```
 
-8. Confirm that the rows are in the table using cqlsh.
+8. Confirm that the rows are in the target table in the YugaByte DB cluster, using cqlsh.
    ```
    cqlsh> select * from demo.test_table;
 
