@@ -86,9 +86,9 @@ For building and using this project, we requires following tools pre-installed o
    ```
    Just cut-paste the following lines at the prompt:
    ```
-   {"key" : "A", "value" : 1, "ts" : 20002000}
-   {"key" : "B", "value" : 2, "ts" : 20002020}
-   {"key" : "C", "value" : 3, "ts" : 20202020}
+   {"key" : "A", "value" : 1, "ts" : 1541559411000}
+   {"key" : "B", "value" : 2, "ts" : 1541559412000}
+   {"key" : "C", "value" : 3, "ts" : 1541559413000}
    ```
    Feel free to Ctrl-C this process or switch to a different shell as more values can be added later as well to the same topic.
 
@@ -107,7 +107,7 @@ For building and using this project, we requires following tools pre-installed o
      ```
 
      *Note*:
-        - The `keyspace` and `tablename` values in the `kafka.connect.properties` file should match the values in the cqlsh commands in step 5.
+        - The `keyspace` and `tablename` values in the `yugabyte.sink.properties` file should match the values in the cqlsh commands in step 5.
         - The topics value should match the topic name from producer in step 6.
         - Setting the `yugabyte.cql.contact.points` to a non-local list of host/ports will help connect to any remote accessible existing YugaByte DB cluster.
 
@@ -133,11 +133,11 @@ For building and using this project, we requires following tools pre-installed o
    ```
    cqlsh> select * from demo.test_table;
 
-    key | value | ts
-   -----+-------+---------------------------------
-      A |     1 | 1970-01-01 05:33:22.000000+0000
-      C |     3 | 1970-01-01 05:36:42.020000+0000
-      B |     2 | 1970-01-01 05:33:22.020000+0000
+   key | value | ts
+  -----+-------+---------------------------------
+     A |     1 | 2018-11-07 02:56:51.000000+0000
+     C |     3 | 2018-11-07 02:56:53.000000+0000
+     B |     2 | 2018-11-07 02:56:52.000000+0000
    ```
    Note that the timestamp value gets printed as a human readable date format automatically.
 
