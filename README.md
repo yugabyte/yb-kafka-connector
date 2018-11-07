@@ -130,11 +130,10 @@ For building and using this project, we requires following tools pre-installed o
      ```
 
 8. Confirm that the rows are in the target table in the YugaByte DB cluster, using cqlsh.
-   ```
+   ```sh
    cqlsh> select * from demo.test_table;
-
    key | value | ts
-  -----+-------+---------------------------------
+   ----+-------+---------------------------------
      A |     1 | 2018-11-07 02:56:51.000000+0000
      C |     3 | 2018-11-07 02:56:53.000000+0000
      B |     2 | 2018-11-07 02:56:52.000000+0000
