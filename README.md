@@ -65,7 +65,7 @@ For building and using this project, we requires following tools pre-installed o
 
    - Finally run the connect sink in standalone mode:
      ```
-     ~/yb-kafka/kafka_2.11-2.0.0/bin/connect-standalone ~/yb-kafka/yb-kafka-connector/resources/examples/kafka.connect.properties ~/yb-kafka/yb-kafka-connector/resources/examples/yugabyte.sink.properties 
+     ~/yb-kafka/kafka_2.11-2.0.0/bin/connect-standalone.sh ~/yb-kafka/yb-kafka-connector/resources/examples/kafka.connect.properties ~/yb-kafka/yb-kafka-connector/resources/examples/yugabyte.sink.properties 
      ```
 
      *Note*:
