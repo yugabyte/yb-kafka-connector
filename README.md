@@ -1,6 +1,12 @@
-# Kafka Connect to YugaByte DB
+There are two approaches of integrating [YugabyteDB](https://github.com/yugabyte/yugabyte-db) with Kafka. Kafka provides [Kafka Connect](https://docs.confluent.io/3.0.0/connect/intro.html), a connector SDK for building such integrations.
 
-This is the framework to persist Kafka topics in to [YugaByte DB](https://github.com/YugaByte/yugabyte-db) using the [Kafka Connect](https://docs.confluent.io/3.0.0/connect/intro.html) Sink mechanism.
+# Kafka Connect YugabyteDB Source Connector
+In this approach, a source connector streams table updates in YugabyteDB to Kafka topics. It is based on YugabyteDB's Change Data Capture (CDC) feature. CDC allows the connector to simply subscribe to these table changes and then publish the changes to selected Kafka topics.
+
+More documentation to follow.
+
+## Kafka Connect YugabyteDB Sink Connector
+In this approach, a sink connector delivers data from Kafka topics into YugabyteDB tables. For example, the connector  subscribes to specific topics in Kafka and then writes to specific tables in YugabyteDB as soon as new messages are received in the selected topics.
 
 ## Prerequisites
 
@@ -42,9 +48,9 @@ For building and using this project, we requires following tools pre-installed o
      ```
      Feel free to Ctrl-C this process or switch to a different shell as more values can be added later as well to the same topic.
 
-2. Install YugaByte DB and create the keyspace/table.
-   - [Install YugaByte DB and start a local cluster](https://docs.yugabyte.com/quick-start/install/).
-   - Create a keyspace and table by running the following command. You can find `cqlsh` in the `bin` sub-directory located inside the YugaByte installation folder.
+2. Install YugabyteDB and create the keyspace/table.
+   - [Install YugabyteDB and start a local cluster](https://docs.yugabyte.com/quick-start/install/).
+   - Create a keyspace and table by running the following command. You can find `cqlsh` in the `bin` sub-directory located inside the YugabyteDB installation folder.
      ```sh
      $> cqlsh
      cqlsh> CREATE KEYSPACE IF NOT EXISTS demo;
