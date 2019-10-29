@@ -1,14 +1,16 @@
 There are two approaches of integrating [YugabyteDB](https://github.com/yugabyte/yugabyte-db) with Kafka. Kafka provides [Kafka Connect](https://docs.confluent.io/3.0.0/connect/intro.html), a connector SDK for building such integrations.
 
+<img src="https://raw.githubusercontent.com/yugabyte/yb-kafka-connector/master/logos/dsql-kafka.png" align="center" alt="Kafka Connect YugabyteDB Connector Architecture"/>
+
 ## Kafka Connect YugabyteDB Source Connector
 
-In this approach, a source connector streams table updates in YugabyteDB to Kafka topics. It is based on YugabyteDB's Change Data Capture (CDC) feature. CDC allows the connector to simply subscribe to these table changes and then publish the changes to selected Kafka topics.
+In this approach, the source connector streams table updates in YugabyteDB to Kafka topics. It is based on YugabyteDB's Change Data Capture (CDC) feature. CDC allows the connector to simply subscribe to these table changes and then publish the changes to selected Kafka topics.
 
 More documentation to follow.
 
 ## Kafka Connect YugabyteDB Sink Connector
 
-In this approach, a sink connector delivers data from Kafka topics into YugabyteDB tables. For example, the connector  subscribes to specific topics in Kafka and then writes to specific tables in YugabyteDB as soon as new messages are received in the selected topics.
+In this approach, the sink connector delivers data from Kafka topics into YugabyteDB tables. The connector subscribes to specific topics in Kafka and then writes to specific tables in YugabyteDB as soon as new messages are received in the selected topics.
 
 ### Prerequisites
 
@@ -129,7 +131,6 @@ For building and using this project, we requires following tools pre-installed o
 - Add more data types.
 - Add more tests.
 - Add restartability.
-- Add YugabyteDB as a Connect Source.
 
 ## License
 
