@@ -17,7 +17,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
      <modelVersion>4.0.0</modelVersion>
      <groupId>com.yb</groupId>
-     <artifactId>yb-kafka-connnector</artifactId>
+     <artifactId>yb-kafka-connector</artifactId>
      <version>1.0.0</version>
      <name>Kafka Connect YB</name>
 
@@ -83,18 +83,18 @@
 
                               YugabyteDB is a high-performance, distributed SQL database built on a scalable and fault-tolerant design inspired by Google Spanner. Yugabyte’s SQL API (YSQL) supports most of PostgreSQL’s functionality and is wire-protocol compatible with PostgreSQL drivers.
                           </description>
-                          <logo>logos/small-logo.png</logo>
+                          <logo>logos/yb_stacked_full_detail_dark_RGB.png</logo>
 
                           <supportProviderName>Yugabyte, Inc.</supportProviderName>
                           <supportSummary>Yugabyte supports the Yugabyte sink connector.</supportSummary>
                           <supportUrl>https://github.com/YugaByte/yb-kafka-connector/issues</supportUrl>
-                          <supportLogo>logos/small-logo.png</supportLogo>
+                          <supportLogo>logos/yb_stacked_full_detail_dark_RGB.png</supportLogo>
 
                           <ownerUsername>yugabyteinc</ownerUsername>
                           <ownerType>organization</ownerType>
                           <ownerName>Yugabyte, Inc.</ownerName>
                           <ownerUrl>https://yugabyte.com/</ownerUrl>
-                          <ownerLogo>logos/small-logo.png</ownerLogo>
+                          <ownerLogo>logos/yb_stacked_full_detail_dark_RGB.png</ownerLogo>
 
                           <dockerNamespace>yugabytedb</dockerNamespace>
                           <dockerName>yugabyte</dockerName>
