@@ -85,6 +85,8 @@ For building and using this project, we requires following tools pre-installed o
      wget http://central.maven.org/maven2/com/yugabyte/cassandra-driver-core/3.2.0-yb-18/cassandra-driver-core-3.2.0-yb-18.jar
      wget http://central.maven.org/maven2/com/codahale/metrics/metrics-core/3.0.1/metrics-core-3.0.1.jar
      ```
+     You also need guava-16.0.1.jar from https://mvnrepository.com/artifact/com.google.guava/guava/16.0.1
+     Otherwise you would encounter 'java.lang.NoClassDefFoundError: com/google/common/util/concurrent/AsyncFunction' error.
 
    - Finally, run the connect sink in standalone mode:
    
