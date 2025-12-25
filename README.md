@@ -1,3 +1,6 @@
+# ⚠️ DEPRECATED
+# *This repository is no longer maintained and has been deprecated.*
+
 There are two approaches of integrating [YugabyteDB](https://github.com/yugabyte/yugabyte-db) with Kafka. Kafka provides [Kafka Connect](https://docs.confluent.io/3.0.0/connect/intro.html), a connector SDK for building such integrations.
 
 <img src="https://raw.githubusercontent.com/yugabyte/yb-kafka-connector/master/logos/dsql-kafka.png" align="center" alt="Kafka Connect YugabyteDB Connector Architecture"/>
