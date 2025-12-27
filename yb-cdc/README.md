@@ -1,8 +1,8 @@
-Using YugaByte’s Change Data Capture (CDC) API, follow these steps to use YugaByte as a data source to a Kafka or console sink: 
+Using YugabyteDB’s Change Data Capture (CDC) API, follow these steps to use YugabyteDB as a data source to a Kafka or console sink: 
 
-SETUP YUGABYTE
+SETUP YUGABYTEDB
 
-1. Install Yugabyte.
+1. Install YugabyteDB.
 
 https://docs.yugabyte.com/latest/quick-start/install/
 
@@ -58,7 +58,7 @@ bin/kafka-avro-console-consumer --bootstrap-server localhost:9092 --topic <topic
 
 SETUP YB CONNECTOR:
 
-1. In a new window, fork YugaByte’s kafka connector repository.
+1. In a new window, fork YugabyteDB’s kafka connector repository.
 
 ```
 git clone https://github.com/yugabyte/yb-kafka-connector.git
